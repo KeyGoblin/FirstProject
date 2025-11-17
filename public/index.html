@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AUTOCHANGE - Best and only Mercedes selector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: rgb(31, 59, 77);
+      text-align: center;
+      padding: 20px;
+      color: rgb(255, 255, 255);
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    form {
+      display: inline-block;
+      text-align: left;
+      background-color: rgb(153, 179, 195);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+      color: black;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input, select {
+      width: 300px;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #2c3e50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1a242f;
+    }
+    #result {
+      margin-top: 30px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+    }
+    img.car {
+      margin-top: 10px;
+      max-width: 400px;
+      width: 100%;
+      border-radius: 10px;
+    }
+    img.logo {
+      width: 120px;
+      margin-bottom: 20px;
+    }
+
+    .logo-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      width: 120px;
+      height: auto;
+    }
+
+    hr {
+      margin: 25px 0;
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>AUTOCHANGE - Best and only Mercedes selector</h1>
+
+  <div class="logo-container">
+    <img src="14146-1926-1933-transport-cars-mercedes-logo-1926-1933.gif"
+         alt="Mercedes-Benz Logo"
+         class="logo">
+  </div>
+
+  <form id="carForm">
+    <label for="name">Name:</label>
+    <input type="text" id="name" required>
+
+    <label for="lastname">Last name:</label>
+    <input type="text" id="lastname" required>
+
+    <label for="phone">Phone number:</label>
+    <input type="tel" id="phone" required>
+
+    <label for="location">Location:</label>
+    <input type="text" id="location" required>
+
+    <label for="current">Current vehicle:</label>
+    <select id="current" required>
+      <option value="">-- Select your current Mercedes --</option>
+      <!-- значение = model|chassis, как в БД -->
+      <option value="E220|W211">Mercedes-Benz E220 W211</option>
+      <option value="C200|W203">Mercedes-Benz C200 W203</option>
+      <option value="S500|W220">Mercedes-Benz S500 W220</option>
+    </select>
+
+    <label for="budget">Approximate budget (USD):</label>
+    <input type="number" id="budget" required>
+
+    <button type="submit">Find My New Car</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    document.getElementById('carForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const current = document.getElementById('current').value;
+      const budget = parseInt(document.getElementById('budget').value, 10);
+      const result = document.getElementById('result');
+
+      if (!current) {
+        result.innerHTML = '<p>Please select your current vehicle.</p>';
+        return;
+      }
+
+      const [model, chassis] = current.split('|');
+      result.innerHTML = '<p>Loading...</p>';
+
+      try {
+        // 1) Основная рекомендация из БД
+        const recRes = await fetch(
+          `/api/recommend?model=${encodeURIComponent(model)}&chassis=${encodeURIComponent(chassis)}`
+        );
+        const rec = await recRes.json();
+
+        if (!rec || rec.error || !rec.new_model) {
+          result.innerHTML = '<p>No recommendation found for this vehicle.</p>';
+          return;
+        }
+
+        const tradeIn = Number(rec.trade_in_value);
+        const newPrice = Number(rec.new_price);
+        const upgradeCost = Number(rec.upgrade_cost);
+
+        let html = `
+          <h2>We recommend:</h2>
+          <p><strong>${rec.new_series} ${rec.new_model} ${rec.new_chassis}</strong></p>
+          <img src="${rec.new_image_url}" alt="${rec.new_model}" class="car">
+          <p>Estimated trade-in value of your car: <strong>$${tradeIn.toLocaleString()}</strong></p>
+          <p>Estimated cost of new car: <strong>$${newPrice.toLocaleString()}</strong></p>
+          <p><strong>You may need to pay approximately: $${upgradeCost.toLocaleString()}</strong></p>
+        `;
+
+        // 2) Если бюджета не хватает — запрос альтернативы из БД
+        if (!Number.isNaN(budget) && budget < upgradeCost) {
+          const altRes = await fetch(`/api/alternative?budget=${encodeURIComponent(budget)}`);
+          const alt = await altRes.json();
+
+          if (alt && alt.model) {
+            html += `
+              <hr>
+              <h3>Alternative within your budget:</h3>
+              <p><strong>${alt.series} ${alt.model} ${alt.chassis_code}</strong> — $${Number(alt.price_usd).toLocaleString()}</p>
+              <img src="${alt.image_url}" alt="${alt.model}" class="car">
+            `;
+          } else {
+            html += `
+              <hr>
+              <p><em>Unfortunately, there are no Mercedes models available within your current budget.</em></p>
+            `;
+          }
+        }
+
+        result.innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        result.innerHTML = '<p>Error contacting server.</p>';
+      }
+    });
+  </script>
+
+</body>
+</html>
+
