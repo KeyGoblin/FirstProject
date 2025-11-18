@@ -109,7 +109,6 @@
     <label for="current">Current vehicle:</label>
     <select id="current" required>
       <option value="">-- Select your current Mercedes --</option>
-      <!-- значение = model|chassis, как в БД -->
       <option value="E220|W211">Mercedes-Benz E220 W211</option>
       <option value="C200|W203">Mercedes-Benz C200 W203</option>
       <option value="S500|W220">Mercedes-Benz S500 W220</option>
@@ -140,7 +139,6 @@
       result.innerHTML = '<p>Loading...</p>';
 
       try {
-        // 1) Основная рекомендация из БД
         const recRes = await fetch(
           `/api/recommend?model=${encodeURIComponent(model)}&chassis=${encodeURIComponent(chassis)}`
         );
@@ -164,7 +162,6 @@
           <p><strong>You may need to pay approximately: $${upgradeCost.toLocaleString()}</strong></p>
         `;
 
-        // 2) Если бюджета не хватает — запрос альтернативы из БД
         if (!Number.isNaN(budget) && budget < upgradeCost) {
           const altRes = await fetch(`/api/alternative?budget=${encodeURIComponent(budget)}`);
           const alt = await altRes.json();

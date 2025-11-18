@@ -4,19 +4,15 @@ const mysql = require('mysql2/promise');
 
 const app = express();
 
-// Раздаём статику из папки public (index.html, gif и т.д.)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Подключение к БД MySQL
 const pool = mysql.createPool({
   host: 'localhost',
-  user: 'root',           // свой логин
-  password: 'KeyGoblin-25', // свой пароль к MySQL
+  user: 'root',
+  password: 'KeyGoblin-25',
   database: 'mercedes_db'
 });
 
-// ----------- API: рекомендация нового авто -----------
-// GET /api/recommend?model=E220&chassis=W211
 app.get('/api/recommend', async (req, res) => {
   try {
     const { model, chassis } = req.query;
@@ -61,8 +57,6 @@ app.get('/api/recommend', async (req, res) => {
   }
 });
 
-// ----------- API: альтернатива в бюджет -----------
-// GET /api/alternative?budget=20000
 app.get('/api/alternative', async (req, res) => {
   try {
     const budget = Number(req.query.budget || 0);
